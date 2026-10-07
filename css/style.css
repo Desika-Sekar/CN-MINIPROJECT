@@ -1,0 +1,570 @@
+/* style.css — simple, neutral styling for the whole simulator.
+
+   Layout rule: the page is a fixed app shell that fits the screen. The header
+   keeps its height, the 3D view fills the rest of the first row, and the panel
+   column scrolls inside itself. The page itself never scrolls. */
+
+/* ---------- Colours and shared values ---------- */
+
+:root {
+  --page: #f4f6f9;
+  --panel: #ffffff;
+  --border: #d7dce5;
+  --text: #1b2432;
+  --muted: #5d6b80;
+  --accent: #2563eb;        /* the single accent colour of the page */
+  --accent-soft: #e8effd;
+  --stage: #0d1220;         /* the 3D view background (dark, always) */
+  --dv: #3b82f6;            /* distance vector blue, matches the packets */
+  --ls: #f59e0b;            /* link state orange, matches the packets */
+  --radius: 10px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page: #10141c;
+    --panel: #171d28;
+    --border: #2a3342;
+    --text: #e7ecf5;
+    --muted: #9aa7bb;
+    --accent: #6f9dff;
+    --accent-soft: #1d2942;
+  }
+}
+
+/* ---------- Base ---------- */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  /* dvh follows the phone browser bar, so the shell really fits the screen */
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;                     /* the page never scrolls */
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 12px;
+  padding: 0 16px 16px;
+  background: var(--page);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+h1 {
+  font-size: 18px;
+  font-weight: 650;
+  margin: 14px 0 1px;
+}
+
+h2 {
+  font-size: 15px;
+  font-weight: 650;
+  margin: 0 0 10px;
+}
+
+p {
+  margin: 0 0 8px;
+}
+
+/* ---------- Top bar ---------- */
+
+.topbar .sub {
+  color: var(--muted);
+  font-size: 12.5px;
+  margin: 0;
+}
+
+/* ---------- Main layout: stages + panels, both inside one screen ---------- */
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 400px;
+  gap: 14px;
+  min-height: 0;
+}
+
+/* Holds the one 3D view, or the two of them in split-screen mode. */
+.stages {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  min-height: 0;
+}
+
+.stages.split {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+/* The container the WebGL canvas is placed in. scene3d.js reads its size with
+   a ResizeObserver, so the 3D view always fills this box exactly. */
+.stage {
+  position: relative;
+  height: 100%;
+  min-height: 0;
+  background: var(--stage);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.stage canvas {
+  display: block;      /* removes the small gap under inline canvases */
+  touch-action: none;  /* lets our own drag/pinch handlers work on touch screens */
+}
+
+/* Small overlay hints inside the 3D view (they do not capture the mouse). */
+.stage-hint {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  padding: 4px 9px;
+  border-radius: 6px;
+  background: rgba(9, 14, 26, 0.6);
+  color: #c9d6ef;
+  font-size: 12px;
+  pointer-events: none;
+}
+
+/* Which algorithm a split-screen view belongs to. */
+.stage-tag {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 3px 9px;
+  border-radius: 6px;
+  background: rgba(9, 14, 26, 0.7);
+  color: #dbe6fb;
+  font-size: 11.5px;
+  pointer-events: none;
+}
+
+/* ---------- Panels (this column scrolls, the page does not) ---------- */
+
+.panels {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  min-width: 0;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.hint {
+  color: var(--muted);
+  font-size: 12.5px;
+  margin: 8px 0 0;
+}
+
+/* Line that reports which process is running right now. */
+.status {
+  margin: 8px 0 0;
+  padding: 7px 10px;
+  border-left: 3px solid var(--accent);
+  background: var(--accent-soft);
+  border-radius: 0 7px 7px 0;
+  font-size: 12.5px;
+}
+
+/* ---------- Form controls ---------- */
+
+button {
+  font: inherit;
+  font-size: 13.5px;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+
+button.primary:hover {
+  color: #ffffff;
+  opacity: 0.92;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+label {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+select {
+  font: inherit;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 5px 8px;
+  max-width: 100%;
+}
+
+input[type="range"] {
+  flex: 1 1 110px;
+  accent-color: var(--accent);
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+}
+
+/* ---------- Tables ---------- */
+
+.table-wrap {
+  overflow: auto;
+  max-height: 270px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.table-wrap.short {
+  max-height: 220px;
+}
+
+.data-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 12.5px;
+}
+
+.data-table th,
+.data-table td {
+  text-align: left;
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.data-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--panel);
+  z-index: 1;
+}
+
+/* Cells that changed in the latest tick. */
+.changed-dv { background: rgba(59, 130, 246, 0.22); }
+.changed-ls { background: rgba(245, 158, 11, 0.22); }
+
+/* A row where the two algorithms picked different (equally cheap) paths. */
+.tie { color: var(--muted); }
+
+/* ---------- Event log ---------- */
+
+.log {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 210px;
+  overflow-y: auto;
+  font-size: 12px;
+}
+
+.log li {
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Path finder ---------- */
+
+.path-line {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  margin: 6px 0;
+  font-size: 12.5px;
+}
+
+.tag {
+  flex: 0 0 auto;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 5px;
+}
+
+.tag-dv { background: rgba(59, 130, 246, 0.18); color: var(--dv); }
+.tag-ls { background: rgba(245, 158, 11, 0.18); color: #b45309; }
+
+/* ---------- Comparison bars (plain CSS, no chart library) ---------- */
+
+.bars {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.bar-title {
+  font-size: 12px;
+  font-weight: 620;
+}
+
+.bar-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+  margin-top: 4px;
+}
+
+.bar-name {
+  flex: 0 0 auto;
+  width: 112px;
+  color: var(--muted);
+}
+
+.bar-track {
+  flex: 1 1 auto;
+  height: 9px;
+  background: var(--accent-soft);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+
+/* Distance vector bars are blue, link state bars are orange - the same colours
+   as the packets moving through the 3D view. */
+.bar-dvStartup,
+.bar-dvEvent { background: var(--dv); }
+
+.bar-lsStartup,
+.bar-lsEvent { background: var(--ls); }
+
+.bar-value {
+  flex: 0 0 auto;
+  width: 40px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.conclusion {
+  margin-top: 12px;
+  font-size: 12.5px;
+}
+
+.sub-head {
+  font-size: 13px;
+  margin: 14px 0 8px;
+}
+
+/* ---------- Legend ---------- */
+
+.legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 13px;
+}
+
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.swatch {
+  width: 13px;
+  height: 13px;
+  border-radius: 3px;
+  flex: 0 0 auto;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+.swatch-node { background: #8fa3c2; }
+.swatch-link { background: #5a6b8c; }
+.swatch-dv { background: var(--dv); }
+.swatch-ls { background: var(--ls); }
+.swatch-path { background: #22c55e; }
+.swatch-failed { background: #ef4444; }
+
+/* ---------- Process picker overlay ---------- */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(6, 10, 18, 0.62);
+}
+
+.overlay[hidden] {
+  display: none;   /* hidden must beat the flex display above */
+}
+
+.overlay-card {
+  width: min(920px, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
+}
+
+.overlay-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.overlay-head .hint {
+  margin: 0;
+  max-width: 62ch;
+}
+
+.task-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 10px;
+}
+
+/* One process card: icon, title, one-line explanation, state tag. */
+.task-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  padding: 11px 12px;
+  border-radius: 10px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.task-card:hover {
+  border-color: var(--accent);
+}
+
+.task-icon {
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.task-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.task-text strong {
+  font-size: 14px;
+  font-weight: 620;
+}
+
+.task-text small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.task-tag {
+  margin-left: auto;
+  flex: 0 0 auto;
+  font-size: 11px;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+
+/* ---------- Responsive: 3D view on top, panels scroll below it ---------- */
+
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(160px, 42%) minmax(0, 1fr);
+  }
+
+  .stages.split {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .overlay {
+    padding: 10px;
+  }
+
+  .task-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .bar-name {
+    width: 88px;
+  }
+}
+
+/* Very short screens (landscape phones): give the 3D view a little less room. */
+@media (max-height: 520px) {
+  .topbar .sub {
+    display: none;
+  }
+
+  .layout {
+    grid-template-rows: minmax(140px, 50%) minmax(0, 1fr);
+  }
+}

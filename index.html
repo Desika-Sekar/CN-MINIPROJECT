@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>3D Banking Network Routing Simulator</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <header class="topbar">
+    <h1>3D Banking Network Routing Simulator</h1>
+    <p class="sub" id="tick-label">Distance vector and link state routing on the same banking network &mdash; tick 0</p>
+  </header>
+
+  <main class="layout">
+
+    <!-- The 3D views. In split-screen mode the second one appears next to the
+         first: distance vector on the left, link state on the right. -->
+    <div class="stages" id="stages">
+      <section class="stage" id="stage" aria-label="3D view of the banking network">
+        <div class="stage-hint">Drag to rotate &middot; scroll or pinch to zoom</div>
+        <div class="stage-tag" id="stage-tag-a" hidden>Distance vector</div>
+      </section>
+      <section class="stage" id="stage-b" aria-label="Second 3D view" hidden>
+        <div class="stage-hint">Drag to rotate &middot; scroll or pinch to zoom</div>
+        <div class="stage-tag">Link state</div>
+      </section>
+    </div>
+
+    <!-- All panels are plain HTML next to the 3D view, never inside it. -->
+    <aside class="panels">
+
+      <section class="panel">
+        <h2>Process</h2>
+        <div class="row">
+          <button type="button" id="btn-start" class="primary">Start simulation</button>
+        </div>
+        <p class="status" id="process-status">No process running. Press "Start simulation" to choose one.</p>
+      </section>
+
+      <section class="panel">
+        <h2>Controls</h2>
+        <div class="row">
+          <button type="button" id="btn-play" class="primary">Play</button>
+          <button type="button" id="btn-step">Step</button>
+          <button type="button" id="btn-reset">Reset</button>
+        </div>
+        <div class="row slider-row">
+          <label for="speed">Speed</label>
+          <input type="range" id="speed" min="0.25" max="3" step="0.25" value="1">
+          <output id="speed-value">1.0&times;</output>
+        </div>
+        <div class="row">
+          <label for="link-select">Leased line</label>
+          <select id="link-select"></select>
+          <button type="button" id="btn-link-event">Fail or restore</button>
+        </div>
+        <div class="row">
+          <button type="button" id="btn-top-view">Top view</button>
+          <button type="button" id="btn-reset-camera">Reset camera</button>
+          <button type="button" id="btn-split">Split screen</button>
+        </div>
+        <div class="row">
+          <label class="check">
+            <input type="checkbox" id="poison"> Split horizon with poison reverse
+          </label>
+        </div>
+        <p class="hint">One tick advances one distance vector round and one link state step
+          together. Speed only changes how fast the ticks play.</p>
+      </section>
+
+      <section class="panel">
+        <h2>Path finder</h2>
+        <div class="row">
+          <label for="from-select">From</label>
+          <select id="from-select"></select>
+          <label for="to-select">To</label>
+          <select id="to-select"></select>
+        </div>
+        <div class="path-line">
+          <span class="tag tag-dv">DV</span>
+          <span id="dv-path-text">-</span>
+        </div>
+        <div class="path-line">
+          <span class="tag tag-ls">LS</span>
+          <span id="ls-path-text">-</span>
+        </div>
+        <div class="row">
+          <label for="highlight-select">Highlight in 3D</label>
+          <select id="highlight-select">
+            <option value="none">Nothing</option>
+            <option value="dv">Distance vector path</option>
+            <option value="ls">Link state path</option>
+          </select>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Routing tables</h2>
+        <div class="row">
+          <label for="router-select">Router</label>
+          <select id="router-select"></select>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table" id="routing-table">
+            <thead>
+              <tr>
+                <th>Destination</th>
+                <th>Distance vector</th>
+                <th>Link state</th>
+              </tr>
+            </thead>
+            <tbody id="routing-table-body"></tbody>
+          </table>
+        </div>
+        <p class="hint">Cells that changed in the latest tick are highlighted.</p>
+      </section>
+
+      <section class="panel">
+        <h2>Event log</h2>
+        <ol class="log" id="event-log"></ol>
+      </section>
+
+      <section class="panel">
+        <h2>Comparison</h2>
+        <div class="table-wrap">
+          <table class="data-table" id="comparison-table">
+            <thead>
+              <tr>
+                <th>Counter</th>
+                <th>DV start-up</th>
+                <th>LS start-up</th>
+                <th>DV after event</th>
+                <th>LS after event</th>
+              </tr>
+            </thead>
+            <tbody id="comparison-body"></tbody>
+          </table>
+        </div>
+        <div class="bars" id="bars"></div>
+        <p class="conclusion" id="conclusion"></p>
+        <h2 class="sub-head">Every source and destination</h2>
+        <div class="table-wrap short">
+          <table class="data-table" id="pairs-table">
+            <thead>
+              <tr>
+                <th>From &rarr; To</th>
+                <th>DV cost</th>
+                <th>DV path</th>
+                <th>LS cost</th>
+                <th>LS path</th>
+              </tr>
+            </thead>
+            <tbody id="pairs-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>How to read this</h2>
+        <ul class="legend">
+          <li><span class="swatch swatch-node"></span> Blue-grey shapes are the bank locations.
+            HO is the big sphere, DC is the cylinder, ATM is the box.</li>
+          <li><span class="swatch swatch-link"></span> Grey lines are the leased lines. The number at
+            the middle of a line is its cost.</li>
+          <li><span class="swatch swatch-dv"></span> Blue packets are distance vector messages:
+            neighbours swapping their whole tables.</li>
+          <li><span class="swatch swatch-ls"></span> Orange packets are link state packets:
+            one router's own links, flooded to everybody.</li>
+          <li><span class="swatch swatch-path"></span> A green, thicker line is a highlighted route.</li>
+          <li><span class="swatch swatch-failed"></span> A red line is a failed leased line.</li>
+        </ul>
+        <p class="hint">A router flashes green and a caption appears next to it whenever its
+          table changes. Costs are in "routing units"; a cost of 24 is shown as
+          <em>unreachable</em>. In distance vector a round counts only when something
+          changed; in link state a step counts for every flooding hop plus the Dijkstra
+          pass. That difference is written on the comparison table.</p>
+      </section>
+
+    </aside>
+  </main>
+
+  <!-- Process picker. ui.js fills #task-grid with one card per process. -->
+  <div class="overlay" id="task-overlay" hidden>
+    <div class="overlay-card" role="dialog" aria-modal="true" aria-labelledby="overlay-title">
+      <div class="overlay-head">
+        <div>
+          <h2 id="overlay-title">Choose a process</h2>
+          <p class="hint">Pick one process. The simulation then works through it step by step,
+            so you can watch the data move through the network and see the routing tables
+            change with it.</p>
+        </div>
+        <button type="button" id="btn-close-overlay">Close</button>
+      </div>
+      <div class="task-grid" id="task-grid"></div>
+    </div>
+  </div>
+
+  <!-- Plain script tags in dependency order (no ES modules, so file:// works). -->
+  <script src="lib/three.min.js"></script>
+  <script src="js/topology.js"></script>
+  <script src="js/metrics.js"></script>
+  <script src="js/distanceVector.js"></script>
+  <script src="js/linkState.js"></script>
+  <script src="js/scene3d.js"></script>
+  <script src="js/packets3d.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
